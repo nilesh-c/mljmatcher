@@ -287,9 +287,10 @@ class Matcher():
         self.builtAuthorProfiles = True
 
     def queryConcat(self, queryText):
-        results = self.qc.queryContributions(self.pc.transformRawDocuments([queryText]), topConcepts=5)
+        results = self.qc.query(self.pc.transformRawDocuments([queryText]))
         results = sorted(results, key=lambda x: x[1])
-        results = {self.authorsc[label].split("||")[1]: score for label, score, _, concepts in results}
+        results = {self.authorsc[label].split("||")[1]: score for label, score, _ in results}
+        print results
         return results
 
     def query(self, queryText):

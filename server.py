@@ -80,7 +80,7 @@ class Home(tornado.web.RequestHandler):
 class Match(tornado.web.RequestHandler):
     # @unblock
     def post(self):
-        self.query = Persist.query
+        self.query = None
         self.authPubs = Persist.authPubs
         self.dblpAuthorsList = Persist.dblpAuthorsList
         self.matcher = Persist.matcher
@@ -192,7 +192,7 @@ class Match(tornado.web.RequestHandler):
             self.runThread(waitAndFinish, (self.matcher,))
 
 
-        Persist.query = self.query
+        # Persist.query = self.query
         Persist.authPubs = self.authPubs
         Persist.dblpAuthorsList = self.dblpAuthorsList
         Persist.matcher = self.matcher
