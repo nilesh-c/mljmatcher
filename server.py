@@ -9,7 +9,8 @@ import tornado.ioloop
 import tornado.web
 import time, json, codecs
 from sm.persist import Persist
-
+import tempfile
+import uuid
 
 EXECUTOR = ThreadPoolExecutor(max_workers=8)
 PARALLEL_EXECUTOR = ProcessPoolExecutor(max_workers=4)
@@ -76,7 +77,18 @@ def unblock(f):
 class Home(tornado.web.RequestHandler):
     def get(self):
         self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/index.html"))
-        
+
+class DownloadMatch(tornado.web.RequestHandler):
+    def get(self, id):
+        # f = self.get_argument("id")
+        with open("/tmp/" + id, 'r') as fp:
+            print id + "BAODIMGDKF"
+            self.set_header('Content-Type', 'text/plain; charset=utf-8')
+            self.set_header('Content-Disposition', 'attachment;filename=matches.csv')
+            self.write(fp.read())
+        self.finish()
+        os.unlink(id)
+
 class Match(tornado.web.RequestHandler):
     # @override
     def writem(self, chunk):
@@ -87,148 +99,172 @@ class Match(tornado.web.RequestHandler):
 
     @unblock
     def post(self):
+        if self.get_argument('matchbutton') != 'match':
+            self.set_header('Content-Type', 'text/plain; charset=utf-8')
+            self.set_header('Content-Disposition', 'attachment;filename=matches.csv')
+
         self.query = None
         self.authPubs = Persist.authPubs
         self.dblpAuthorsList = Persist.dblpAuthorsList
         self.matcher = Persist.matcher
+        self.topk = self.get_argument('topk').strip()
+        self.topk = int(self.topk) if self.topk else -1
+        self.numtopics = self.get_argument('numtopics').strip()
+        self.numtopics = int(self.numtopics) if self.numtopics else 3
 
-        if self.get_argument('matchbutton') == 'match':
-            self.matching = True
-        else:
-            self.matching = False
+        try:
 
-        self.writem('<div id="progress">')
-        self.flushm()
-        # Check if we're reading files or textareas
-        if self.get_argument('inputtype') == "Raw Text":
-            self.query = self.get_argument('inputtext')
-            dblplist = self.get_argument('inputdblp')
-        else:
-            if len(self.request.files['uploadpdf']) > 1:
-                print "GREATER THAN 1"
-                self.query = {}
-                for filecontent in self.request.files['uploadpdf']:
-                    pdfBody = filecontent['body']
-                    fileName = filecontent['filename']
+            if self.get_argument('matchbutton') == 'match':
+                self.matching = True
+            else:
+                self.matching = False
 
-                    def setQuery(fileName):
-                        def setQuery2(query):
-                            self.query[fileName] = query
-                            print "ADDED", fileName
-                        return setQuery2
+            self.writem('<div id="progress">')
+            self.flushm()
+            # Check if we're reading files or textareas
+            if self.get_argument('inputtype') == "Raw Text":
+                self.query = self.get_argument('inputtext')
+                dblplist = self.get_argument('inputdblp')
+            else:
+                if len(self.request.files['uploadpdf']) > 1:
+                    print "GREATER THAN 1"
+                    self.query = {}
+                    for filecontent in self.request.files['uploadpdf']:
+                        pdfBody = filecontent['body']
+                        fileName = filecontent['filename']
 
-                    print "Doing ", fileName
-                    setQuery(fileName)(extractTextFromPDF(pdfBody))
-                    print "Done ", fileName
-                    # self.runThread(self.runParallel, ("Extracting text from PDF %s.<br>" % fileName, "<br>Finished extracting text from PDF %s.<br>" % fileName, extractTextFromPDF, pdfBody), callback=setQuery(fileName))
+                        def setQuery(fileName):
+                            def setQuery2(query):
+                                self.query[fileName] = query
+                                print "ADDED", fileName
+                            return setQuery2
+
+                        print "Doing ", fileName
+                        setQuery(fileName)(extractTextFromPDF(pdfBody))
+                        print "Done ", fileName
+                        # self.runThread(self.runParallel, ("Extracting text from PDF %s.<br>" % fileName, "<br>Finished extracting text from PDF %s.<br>" % fileName, extractTextFromPDF, pdfBody), callback=setQuery(fileName))
+                        # self.query = extractTextFromPDF(pdfBody)
+
+                else:
+                    pdfBody = self.request.files['uploadpdf'][0]['body']
+
+                    def setQuery(query):
+                        self.query = query.result()
+
+                    self.runThread(self.runParallel, ("Extracting text from PDF.<br>", "<br>Finished extracting text from PDF.<br>", extractTextFromPDF, pdfBody), callback=setQuery)
                     # self.query = extractTextFromPDF(pdfBody)
 
-            else:
-                pdfBody = self.request.files['uploadpdf'][0]['body']
 
-                def setQuery(query):
-                    self.query = query.result()
+                dblplist = self.request.files['uploaddblp'][0]['body']
+                # print dblplist
 
-                self.runThread(self.runParallel, ("Extracting text from PDF.<br>", "<br>Finished extracting text from PDF.<br>", extractTextFromPDF, pdfBody), callback=setQuery)
-                # self.query = extractTextFromPDF(pdfBody)
+            def setAuthPubs(args):
+                authPubs, dblpAuthorsList = args.result()
+                self.authPubs = authPubs
+                self.dblpAuthorsList = dblpAuthorsList
 
-
-            dblplist = self.request.files['uploaddblp'][0]['body']
-            # print dblplist
-
-        def setAuthPubs(args):
-            authPubs, dblpAuthorsList = args.result()
-            self.authPubs = authPubs
-            self.dblpAuthorsList = dblpAuthorsList
-
-        def sleepUntilAvailable(tuple):
-            numqueries = len(self.request.files['uploadpdf'])
-            if 'query' in tuple and numqueries > 1:
-                while True:
-                    if None in [getattr(self, i) for i in tuple] or len(self.query) < numqueries:
-                        time.sleep(1)
-                        print "sleep"
-                        print self.query.keys()
-                    else:
-                        break
-            else:
-                while True:
-                    if None in [getattr(self, i) for i in tuple]:
-                        time.sleep(1)
-                        print 'sleep 2'
-                    else:
-                        break
-
-        def waitAndFinish(matcher):
-            sleepUntilAvailable(('authPubs', 'dblpAuthorsList'))
-
-            if not matcher.builtAuthorProfiles: self.runThread2("Building author profiles...<br>", "<br>Finished building author profiles.<br>", matcher.buildAuthorProfiles, self.authPubs)
-            if not matcher.builtConcatAuthorProfiles: self.runThread2("Building author profiles...<br>", "<br>Finished building author profiles.<br>", matcher.buildConcatenatedAuthorProfiles, self.authPubs)
-            # matcher.buildAuthorProfiles(self.authPubs)
-            # self.write("Building author profiles...<br>")
-            # self.flush()
-            # matcher.buildAuthorProfiles(self.authPubs)
-            # self.write("<br>Finished building author profiles.<br>")
-            # self.flush()
-
-            sleepUntilAvailable(('query',))
-
-            if type(self.query) == dict:
-                output = []
-                for filename, query in self.query.items():
-                    print "Matching with %s" % filename
-                    concatscores = matcher.queryConcat(query)
-                    output.append((filename, matcher.query(query), concatscores))
-
-                self.writem("</div>")
-                self.flushm()
-                self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/multiresults.html"), results=output, dblpPages=dict(self.dblpAuthorsList))
-            else:
-                print "Matching!!"
-                output = matcher.query(self.query)
-                concatscores = matcher.queryConcat(self.query)
-                print concatscores
-                self.writem("</div>")
-                self.flushm()
-
-                if self.get_argument('inputsort') == "All publications concatenated":
-                    self.sortconcat = True
-                    output.sort(key=lambda x: concatscores[x[0][0].split("||")[1]], reverse=True)
+            def sleepUntilAvailable(tuple):
+                numqueries = len(self.request.files['uploadpdf'])
+                if 'query' in tuple and numqueries > 1:
+                    while True:
+                        if None in [getattr(self, i) for i in tuple] or len(self.query) < numqueries:
+                            time.sleep(1)
+                            print "sleep"
+                            print self.query.keys()
+                        else:
+                            break
                 else:
-                    self.sortconcat = False
+                    while True:
+                        if None in [getattr(self, i) for i in tuple]:
+                            time.sleep(1)
+                            print 'sleep 2'
+                        else:
+                            break
 
-                specialcutoff = self.getCutoff(self.get_argument('cutoff'))
-                otherscutoff = self.getCutoff(self.get_argument('otherscutoff'))
+            def waitAndFinish(matcher):
+                sleepUntilAvailable(('authPubs', 'dblpAuthorsList'))
 
-                if self.matching:
-                    self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/results.html"), results=output, dblpPages=dict(self.dblpAuthorsList), concatscores=concatscores, specialcutoff=specialcutoff, otherscutoff=otherscutoff, sortconcat=self.sortconcat)
+                if not matcher.builtAuthorProfiles: self.runThread2("Building author profiles...<br>", "<br>Finished building author profiles.<br>", matcher.buildAuthorProfiles, self.authPubs)
+                if not matcher.builtConcatAuthorProfiles: self.runThread2("Building author profiles...<br>", "<br>Finished building author profiles.<br>", matcher.buildConcatenatedAuthorProfiles, self.authPubs)
+                # matcher.buildAuthorProfiles(self.authPubs)
+                # self.write("Building author profiles...<br>")
+                # self.flush()
+                # matcher.buildAuthorProfiles(self.authPubs)
+                # self.write("<br>Finished building author profiles.<br>")
+                # self.flush()
+
+                sleepUntilAvailable(('query',))
+
+                if type(self.query) == dict:
+                    output = []
+                    for filename, query in self.query.items():
+                        print "Matching with %s" % filename
+                        concatscores = matcher.queryConcat(query)
+                        output.append((filename, matcher.query(query), concatscores))
+
+                    self.writem("</div>")
+                    self.flushm()
+                    self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/multiresults.html"),
+                                results=output,
+                                dblpPages=dict(self.dblpAuthorsList))
                 else:
-                    self.set_header('Content-Type', 'text/csv')
-                    self.set_header('Content-Disposition', 'attachment; filename=matches.csv')
-                    for (author, score), _ in output:
-                        name, url = author.split("||")
-                        finalscore = concatscores[url] if self.sortconcat == True else score
-                        self.write("%s,%f\n" % (author, finalscore))
-                    self.finish()
+                    print "Matching!!"
+                    output = matcher.query(self.query, topK=self.topk)
+                    concatscores = matcher.queryConcat(self.query, topK=self.topk)
+                    # print concatscores
+                    self.writem("</div>")
+                    self.flushm()
+
+                    if self.get_argument('inputsort') == "All publications concatenated":
+                        self.sortconcat = True
+                        output.sort(key=lambda x: concatscores[x[0][0].split("||")[1]], reverse=True)
+                    else:
+                        self.sortconcat = False
+
+                    specialcutoff = self.getCutoff(self.get_argument('cutoff'))
+                    otherscutoff = self.getCutoff(self.get_argument('otherscutoff'))
+
+                    if self.matching:
+                        self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/results.html"),
+                                    results=output,
+                                    dblpPages=dict(self.dblpAuthorsList),
+                                    concatscores=concatscores,
+                                    specialcutoff=specialcutoff,
+                                    otherscutoff=otherscutoff,
+                                    sortconcat=self.sortconcat,
+                                    numtopics=self.numtopics)
+                    else:
+                        f = str(uuid.uuid4().get_hex().upper()[:10])
+                        with open("/tmp/" + f, 'w') as temp:
+                            for (author, score), _ in output:
+                                name, url = author.split("||")
+                                finalscore = concatscores[url] if self.sortconcat == True else score
+                                temp.write("%s,%f\n" % (author.encode('utf-8'), finalscore))
+
+                        # self.redirect("/matches.csv/%s" % f, status=303)
+                        with open("/tmp/" + f, 'r') as fp:
+                            self.write(fp.read())
+                        self.finish()
+                        os.unlink("/tmp/"+f)
 
 
-        if self.authPubs == None or self.dblpAuthorsList == None:
-            self.runThread(self.runThread2, ("Fetching publications for given authors...<br>",
-             "<br>Finished fetching publications.<br>", getAuthPubs, dblplist), callback=setAuthPubs)
-        # setAuthPubs(getAuthPubs(dblplist))
+            if self.authPubs == None or self.dblpAuthorsList == None:
+                self.runThread(self.runThread2, ("Fetching publications for given authors...<br>",
+                 "<br>Finished fetching publications.<br>", getAuthPubs, dblplist), callback=setAuthPubs)
+            # setAuthPubs(getAuthPubs(dblplist))
 
-        if self.matcher == None:
-            self.matcher = Matcher(CACHEDIR)
-            self.runThread2("Building semantic interpreter...<br>", "<br>Finished building semantic interpreter.<br>",
-            self.matcher.buildSemanticInterpreter, callback=lambda x: self.runThread(waitAndFinish, (self.matcher,)))
-        else:
-            self.runThread(waitAndFinish, (self.matcher,))
+            if self.matcher == None:
+                self.matcher = Matcher(CACHEDIR)
+                self.runThread2("Building semantic interpreter...<br>", "<br>Finished building semantic interpreter.<br>",
+                self.matcher.buildSemanticInterpreter, callback=lambda x: self.runThread(waitAndFinish, (self.matcher,)))
+            else:
+                self.runThread(waitAndFinish, (self.matcher,))
 
-
-        # Persist.query = self.query
-        Persist.authPubs = self.authPubs
-        Persist.dblpAuthorsList = self.dblpAuthorsList
-        Persist.matcher = self.matcher
+        finally:
+            # Persist.query = self.query
+            Persist.authPubs = self.authPubs
+            Persist.dblpAuthorsList = self.dblpAuthorsList
+            Persist.matcher = self.matcher
 
 
         # self.runThread(wait)
@@ -264,7 +300,6 @@ class Match(tornado.web.RequestHandler):
 
 
     def getCutoff(self, cutoff):
-        print cutoff, "BLAH"
         if '-1' in cutoff:
             return None
         else:
@@ -357,7 +392,8 @@ class Match(tornado.web.RequestHandler):
  
 application = tornado.web.Application([
         (r"/", Home),
-        (r"/upload", Match),
+        (r"/matches", Match),
+        (r"/matches.csv(.*)", DownloadMatch),
         (r"/css/(.*)", tornado.web.StaticFileHandler),
         (r"/js/(.*)", tornado.web.StaticFileHandler),
         ], debug=True, static_path=os.path.join(os.path.dirname(__file__), "static"),)

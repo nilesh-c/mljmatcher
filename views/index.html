@@ -14,7 +14,7 @@
 	</head>
 	<body>
 
-<form class="form-horizontal" enctype="multipart/form-data" action="/upload" method="post">
+<form class="form-horizontal" enctype="multipart/form-data" action="/matches" method="post">
 <fieldset>
 
 <!-- Form Name -->
@@ -25,12 +25,12 @@
   <label class="control-label" for="inputtype">Input Type</label>
   <div class="controls">
     <label class="radio" for="inputtype-0">
-      <input type="radio" name="inputtype" id="inputtype-0" value="Raw Text" checked="checked">
-      Raw Text
+      <input type="radio" name="inputtype" id="inputtype-0" value="File Uploads" checked="checked">
+      File Uploads
     </label>
     <label class="radio" for="inputtype-1">
-      <input type="radio" name="inputtype" id="inputtype-1" value="File Uploads">
-      File Uploads
+      <input type="radio" name="inputtype" id="inputtype-1" value="Raw Text">
+      Raw Text
     </label>
   </div>
 </div>
@@ -51,19 +51,37 @@
 </div>
 
 <!-- Text input-->
-<div class="form-group">
-  <label class="col-md-4 control-label" for="cutoff">Special Members Cutoff</label>
-  <div class="col-md-4">
-  <input id="cutoff" name="cutoff" type="text" placeholder="-1 for no cutoff" class="form-control input-md">
+<div class="form-group" style="margin-top:25px; margin-left:-50px">
+  <label class="col-md-2 control-label" for="cutoff">Special Members Cutoff</label>
+  <div class="col-md-2">
+  <input id="cutoff" name="cutoff" type="text" placeholder="-1 for no cutoff (default)" class="form-control input-md">
 
   </div>
 </div>
 
 <!-- Text input-->
-<div class="form-group">
-  <label class="col-md-4 control-label" for="otherscutoff">Others Cutoff</label>
-  <div class="col-md-4">
-  <input id="otherscutoff" name="otherscutoff" type="text" placeholder="-1 for no cutoff" class="form-control input-md">
+<div class="form-group" style="margin-left:-50px">
+  <label class="col-md-2 control-label" for="otherscutoff">Others Cutoff</label>
+  <div class="col-md-2">
+  <input id="otherscutoff" name="otherscutoff" type="text" placeholder="-1 for no cutoff (default)" class="form-control input-md">
+
+  </div>
+</div>
+
+<!-- Text input-->
+<div class="form-group" style="margin-top:25px; margin-left:-50px">
+  <label class="col-md-2 control-label" for="topk">No. of non-zero entries in topic-space vectors</label>
+  <div class="col-md-2">
+  <input id="topk" name="topk" type="text" placeholder="-1 to keep all (default)" class="form-control input-md" style="margin-top:8px">
+
+  </div>
+</div>
+
+<!-- Text input-->
+<div class="form-group" style="margin-left:-50px">
+  <label class="col-md-2 control-label" for="numtopics">Number of topics to show</label>
+  <div class="col-md-2">
+  <input id="numtopics" name="numtopics" type="text" placeholder="3 (default)" class="form-control input-md">
 
   </div>
 </div>
@@ -144,14 +162,14 @@
       $(document).ready(function(){
         $('#inputtype-0').click()
         $('#inputtype-1').removeAttr('checked')
+        $('#textentry').hide()
+        $('#uploaders').show()
+      });
+      $('#inputtype-1').click(function(){
         $('#textentry').show()
         $('#uploaders').hide()
       });
       $('#inputtype-0').click(function(){
-        $('#textentry').show()
-        $('#uploaders').hide()
-      });
-      $('#inputtype-1').click(function(){
         $('#textentry').hide()
         $('#uploaders').show()
       });

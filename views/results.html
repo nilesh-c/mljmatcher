@@ -28,7 +28,7 @@
                         {% for title, pscore, concepts in publications[:10] %}
                         <li>	<span><i class="glyphicon glyphicon-minus-sign"></i> {{escape("%s, %f" % (title, pscore))}}</span>
                             <ul>
-                                {%  for concept, conceptScore in sorted([(c, s) for c, s in concepts.items() if s > 0.0], key=lambda x: x[1], reverse=True)[:3] %}
+                                {%  for concept, conceptScore in sorted([(c, s) for c, s in concepts.items() if s > 0.0], key=lambda x: x[1], reverse=True)[:numtopics] %}
                                 <li> <span><i class="glyphicon glyphicon-leaf"></i> {{escape("%s, %f" % (concept, conceptScore))}} </span>
 
                                 </li>

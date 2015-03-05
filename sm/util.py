@@ -286,19 +286,19 @@ class Matcher():
             pickle.dump((self.authors, self.docs, self.labels, self.p, self.q), open(os.path.join(self.cachedir, "authorProfiles"), "wb"))
         self.builtAuthorProfiles = True
 
-    def queryConcat(self, queryText):
-        results = self.qc.query(self.pc.transformRawDocuments([queryText]))
+    def queryConcat(self, queryText, topK=-1):
+        results = self.qc.query(self.pc.transformRawDocuments([queryText], K=topK))
         results = sorted(results, key=lambda x: x[1])
         results = {self.authorsc[label].split("||")[1]: score for label, score, _ in results}
-        print results
+        # print results
         return results
 
-    def query(self, queryText):
+    def query(self, queryText, topK=-1):
         numAuthors = -1
         numAuthors = -1
         numTitles = -1
 
-        results = self.q.queryContributions(self.p.transformRawDocuments([queryText]), topConcepts=5)
+        results = self.q.queryContributions(self.p.transformRawDocuments([queryText], K=topK), topConcepts=5)
         results = sorted(results, key=lambda x: x[0])
         # print results
         return getTopAuthors(self.authors, self.docs, [i[3] for i in results], [i[1] for i in results], numAuthors, numTitles)
