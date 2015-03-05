@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta charset="utf-8">
+		<title>Bootstrap Login Form</title>
+		<meta name="generator" content="Bootply" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<link href="{{ static_url('css/bootstrap.min.css') }}" rel="stylesheet">
+		<!--[if lt IE 9]>
+			<script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+		<link href="{{ static_url('css/styles.css') }}" rel="stylesheet">
+	</head>
+	<body>
+
+
+<!-- Form Name -->
+<legend>MLJ Matcher 2.0</legend>
+<div class="tree well">
+    <ul>
+        {% for (author, score), publications in results %}
+        {% set (name, url) = author.split("||") %}
+        <li> <span class="author" score="{{score}}" concatscore="{{concatscores[url]}}"><i class="glyphicon glyphicon-folder-open"></i> {{escape("%s, %f" % (name, score))}}</span>  <a href="{{'//dblp.uni-trier.de/pers/hd/' + url}}" target="_blank">Visit DBLP page</a>
+            <ul>
+                {% for title, pscore, concepts in publications %}
+                <li>	<span><i class="glyphicon glyphicon-minus-sign"></i> {{escape("%s, %f" % (title, pscore))}}</span>
+                    <ul>
+                        {%  for concept, conceptScore in sorted([(c, s) for c, s in concepts.items() if s > 0.0], key=lambda x: x[1], reverse=True) %}
+                        <li> <span><i class="glyphicon glyphicon-leaf"></i> {{escape("%s, %f" % (concept, conceptScore))}} </span>
+
+                        </li>
+                        {% end %}
+                    </ul>
+                </li>
+                {% end %}
+            </ul>
+        </li>
+        {% end %}
+    </ul>
+</div>
+
+	<!-- script references -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+		<script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+    <script type="text/javascript">
+      $(function () {
+          $('.tree li:has(ul)').addClass('parent_li').find(' > span').attr('title', 'Collapse this branch');
+
+          $('.tree li.parent_li > span').on('click', function (e) {
+              var children = $(this).parent('li.parent_li').find(' > ul > li');
+              if (children.is(":visible")) {
+                  children.hide('fast');
+                  $(this).attr('title', 'Expand').find(' > i').addClass('glyphicon-plus-sign').removeClass('glyphicon-minus-sign');
+              } else {
+                  children.show('fast');
+                  $(this).attr('title', 'Collapse').find(' > i').addClass('glyphicon-minus-sign').removeClass('glyphicon-plus-sign');
+              }
+              e.stopPropagation();
+          });
+
+        $(document).ready(function(){
+            $('#progress').hide()
+            $('.tree li.parent_li > span').click()
+        })
+      });
+    </script>
+	</body>
+</html>

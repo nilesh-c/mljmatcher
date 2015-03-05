@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta charset="utf-8">
+		<title>Bootstrap Login Form</title>
+		<meta name="generator" content="Bootply" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<link href="{{ static_url('css/bootstrap.min.css') }}" rel="stylesheet">
+		<!--[if lt IE 9]>
+			<script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+		<link href="{{ static_url('css/styles.css') }}" rel="stylesheet">
+	</head>
+	<body>
+
+<form class="form-horizontal" enctype="multipart/form-data" action="/upload" method="post">
+<fieldset>
+
+<!-- Form Name -->
+<legend>MLJ Matcher 2.0</legend>
+
+<!-- Multiple Radios -->
+<div class="control-group">
+  <label class="control-label" for="inputtype">Input Type</label>
+  <div class="controls">
+    <label class="radio" for="inputtype-0">
+      <input type="radio" name="inputtype" id="inputtype-0" value="Raw Text" checked="checked">
+      Raw Text
+    </label>
+    <label class="radio" for="inputtype-1">
+      <input type="radio" name="inputtype" id="inputtype-1" value="File Uploads">
+      File Uploads
+    </label>
+  </div>
+</div>
+
+<div id="textentry">
+  <!-- Textarea -->
+  <div class="control-group">
+    <label class="control-label" for="inputtext">Input query text</label>
+    <div class="controls">                     
+      <textarea id="inputtext" name="inputtext">Please enter input text here...</textarea>
+    </div>
+  </div>
+
+  <!-- Textarea -->
+  <div class="control-group">
+    <label class="control-label" for="inputdblp">Input DBLP author list</label>
+    <div class="controls">                     
+      <textarea id="inputdblp" name="inputdblp">Example:
+
+  Adam Kalai (ex-AE),k/Kalai:Adam
+  Adam Klivans,k/Klivans:Adam
+  Alan Fern (AE),f/Fern:Alan</textarea>
+    </div>
+  </div>
+
+  </div>
+</div>
+
+<div id="uploaders">
+  <!-- File Button --> 
+  <div class="control-group">
+    <label class="control-label" for="uploadpdf">Upload Query PDF</label>
+    <div class="controls">
+      <input id="uploadpdf" name="uploadpdf" class="input-file" type="file" multiple>
+    </div>
+  </div>
+
+  <!-- File Button --> 
+  <div class="control-group">
+    <label class="control-label" for="uploaddblp">Upload DBLP author list</label>
+    <div class="controls">
+      <input id="uploaddblp" name="uploaddblp" class="input-file" type="file">
+    </div>
+  </div>
+</div>
+
+<!-- Multiple Radios -->
+<!--<div class="control-group">-->
+  <!--<label class="control-label" for="granularity">Granularity</label>-->
+  <!--<div class="controls">-->
+    <!--<label class="radio" for="granularity-0">-->
+      <!--<input type="radio" name="granularity" id="granularity-0" value="Match each publication with the query (authors are sets of publications)" checked="checked">-->
+      <!--Match each publication with the query (authors are sets of publications)-->
+    <!--</label>-->
+    <!--<label class="radio" for="granularity-1">-->
+      <!--<input type="radio" name="granularity" id="granularity-1" value="Match each author with the query (faster)">-->
+      <!--Match each author with the query (faster)-->
+    <!--</label>-->
+  <!--</div>-->
+<!--</div>-->
+
+<!-- Button -->
+<div class="control-group">
+  <label class="control-label" for="singlebutton"></label>
+  <div class="controls">
+    <button id="singlebutton" name="singlebutton" class="btn btn-primary" type="submit" value="upload">Match!</button>
+  </div>
+</div>
+
+</fieldset>
+</form>
+	<!-- script references -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+		<script src="{{ static_url('js/bootstrap.min.js') }}"></script>
+    <script type="text/javascript">
+      $(document).ready(function(){
+        $('#inputtype-0').click()
+        $('#inputtype-1').removeAttr('checked')
+        $('#textentry').show()
+        $('#uploaders').hide()
+      });
+      $('#inputtype-0').click(function(){
+        $('#textentry').show()
+        $('#uploaders').hide()
+      });
+      $('#inputtype-1').click(function(){
+        $('#textentry').hide()
+        $('#uploaders').show()
+      });
+
+      // for (var someid in ['#']
+      var someid = 'textarea'
+      $('textarea').each(function(index, elem) {
+        $(function(){
+          var standard_message = $(elem).val();
+          $(elem).focus(
+              function() {
+                  if ($(this).val() == standard_message)
+                      $(this).val("");
+              }
+          );
+          $(elem).blur(
+              function() {
+                  if ($(this).val() == "")
+                      $(this).val(standard_message);
+              }
+          );
+        });
+      })
+      
+    </script>
+	</body>
+</html>
