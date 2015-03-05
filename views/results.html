@@ -20,22 +20,25 @@
 <div class="tree well">
     <ul>
         {% for (author, score), publications in results %}
-        {% set (name, url) = author.split("||") %}
-        <li> <span class="author" score="{{score}}" concatscore="{{concatscores[url]}}"><i class="glyphicon glyphicon-folder-open"></i> {{escape("%s, %f" % (name, score))}}</span>  <a href="{{'//dblp.uni-trier.de/pers/hd/' + url}}" target="_blank">Visit DBLP page</a>
-            <ul>
-                {% for title, pscore, concepts in publications %}
-                <li>	<span><i class="glyphicon glyphicon-minus-sign"></i> {{escape("%s, %f" % (title, pscore))}}</span>
+            {% set (name, url) = author.split("||") %}
+            {% set finalscore = concatscores[url] if sortconcat == True else score %}
+            {% if ("(" in name and ")" in name and finalscore >= specialcutoff) or (("(" not in name or ")" not in name) and finalscore >= otherscutoff) %}
+                <li> <span class="author" data-score="{{score}}" data-concatscore="{{concatscores[url]}}"><i class="glyphicon glyphicon-folder-open"></i> {{escape("%s, %f" % (name, finalscore))}}</span>  <a href="{{'//dblp.uni-trier.de/pers/hd/' + url}}" target="_blank">Visit DBLP page</a>
                     <ul>
-                        {%  for concept, conceptScore in sorted([(c, s) for c, s in concepts.items() if s > 0.0], key=lambda x: x[1], reverse=True) %}
-                        <li> <span><i class="glyphicon glyphicon-leaf"></i> {{escape("%s, %f" % (concept, conceptScore))}} </span>
+                        {% for title, pscore, concepts in publications[:10] %}
+                        <li>	<span><i class="glyphicon glyphicon-minus-sign"></i> {{escape("%s, %f" % (title, pscore))}}</span>
+                            <ul>
+                                {%  for concept, conceptScore in sorted([(c, s) for c, s in concepts.items() if s > 0.0], key=lambda x: x[1], reverse=True)[:3] %}
+                                <li> <span><i class="glyphicon glyphicon-leaf"></i> {{escape("%s, %f" % (concept, conceptScore))}} </span>
 
+                                </li>
+                                {% end %}
+                            </ul>
                         </li>
                         {% end %}
                     </ul>
                 </li>
                 {% end %}
-            </ul>
-        </li>
         {% end %}
     </ul>
 </div>

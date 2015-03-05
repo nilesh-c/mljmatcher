@@ -58,12 +58,12 @@ def unblock(f):
 
         def callback(future):
             # try:
-            self.write(future.result())
+            self.writem(future.result())
             # except:
             #     print "Caused an exception!"
 
             print future.result()
-            self.write("E caused")
+            self.writem("E caused")
 
         EXECUTOR.submit(
             partial(f, *args, **kwargs)
@@ -78,15 +78,27 @@ class Home(tornado.web.RequestHandler):
         self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/index.html"))
         
 class Match(tornado.web.RequestHandler):
-    # @unblock
+    # @override
+    def writem(self, chunk):
+        if self.matching: self.write(chunk)
+
+    def flushm(self):
+        if self.matching: self.flush()
+
+    @unblock
     def post(self):
         self.query = None
         self.authPubs = Persist.authPubs
         self.dblpAuthorsList = Persist.dblpAuthorsList
         self.matcher = Persist.matcher
 
-        self.write('<div id="progress">')
-        self.flush()
+        if self.get_argument('matchbutton') == 'match':
+            self.matching = True
+        else:
+            self.matching = False
+
+        self.writem('<div id="progress">')
+        self.flushm()
         # Check if we're reading files or textareas
         if self.get_argument('inputtype') == "Raw Text":
             self.query = self.get_argument('inputtext')
@@ -165,19 +177,40 @@ class Match(tornado.web.RequestHandler):
                 output = []
                 for filename, query in self.query.items():
                     print "Matching with %s" % filename
-                    output.append((filename, matcher.query(query)))
+                    concatscores = matcher.queryConcat(query)
+                    output.append((filename, matcher.query(query), concatscores))
 
-                self.write("</div>")
-                self.flush()
+                self.writem("</div>")
+                self.flushm()
                 self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/multiresults.html"), results=output, dblpPages=dict(self.dblpAuthorsList))
             else:
                 print "Matching!!"
                 output = matcher.query(self.query)
                 concatscores = matcher.queryConcat(self.query)
                 print concatscores
-                self.write("</div>")
-                self.flush()
-                self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/results.html"), results=output, dblpPages=dict(self.dblpAuthorsList), concatscores=concatscores)
+                self.writem("</div>")
+                self.flushm()
+
+                if self.get_argument('inputsort') == "All publications concatenated":
+                    self.sortconcat = True
+                    output.sort(key=lambda x: concatscores[x[0][0].split("||")[1]], reverse=True)
+                else:
+                    self.sortconcat = False
+
+                specialcutoff = self.getCutoff(self.get_argument('cutoff'))
+                otherscutoff = self.getCutoff(self.get_argument('otherscutoff'))
+
+                if self.matching:
+                    self.render(os.path.join(os.path.dirname(os.path.realpath(__file__)), "views/results.html"), results=output, dblpPages=dict(self.dblpAuthorsList), concatscores=concatscores, specialcutoff=specialcutoff, otherscutoff=otherscutoff, sortconcat=self.sortconcat)
+                else:
+                    self.set_header('Content-Type', 'text/csv')
+                    self.set_header('Content-Disposition', 'attachment; filename=matches.csv')
+                    for (author, score), _ in output:
+                        name, url = author.split("||")
+                        finalscore = concatscores[url] if self.sortconcat == True else score
+                        self.write("%s,%f\n" % (author, finalscore))
+                    self.finish()
+
 
         if self.authPubs == None or self.dblpAuthorsList == None:
             self.runThread(self.runThread2, ("Fetching publications for given authors...<br>",
@@ -229,22 +262,37 @@ class Match(tornado.web.RequestHandler):
         authPubs = [(name, dblp.getTitlesForAuthor(urlid, name)) for name, urlid in dblpAuthorsList]
         return (authPubs, dblpAuthorsList)
 
+
+    def getCutoff(self, cutoff):
+        print cutoff, "BLAH"
+        if '-1' in cutoff:
+            return None
+        else:
+            try:
+                c = float(cutoff.strip())
+                if c < 0:
+                    return None
+                else:
+                    return c
+            except:
+                return None
+
     def runParallel(self, start, finish, fn, args=None):
         if args == None:
             fut = PARALLEL_EXECUTOR.submit(fn)
         else:
             fut = PARALLEL_EXECUTOR.submit(fn, args)
-        self.write(start)
-        self.flush()
+        self.writem(start)
+        self.flushm()
         while True:
             if not fut.done():
                 time.sleep(1)
-                self.write("...")
+                self.writem("...")
                 self.flush()
             else:
                 break
-        self.write(finish)
-        self.flush()
+        self.writem(finish)
+        self.flushm()
         return fut.result()
 
     def runThread2(self, start, finish, fn, args=None, callback=None):
@@ -252,17 +300,17 @@ class Match(tornado.web.RequestHandler):
             fut = EXECUTOR.submit(fn)
         else:
             fut = EXECUTOR.submit(fn, args)
-        self.write(start)
-        self.flush()
+        self.writem(start)
+        self.flushm()
         while True:
             if not fut.done():
                 time.sleep(1)
-                self.write("...")
+                self.writem("...")
                 self.flush()
             else:
                 break
-        self.write(finish)
-        self.flush()
+        self.writem(finish)
+        self.flushm()
         if callback == None:
             return fut.result()
         else:
@@ -284,17 +332,17 @@ class Match(tornado.web.RequestHandler):
             fut = EXECUTOR.submit(fn, args)
         else:
             fut = EXECUTOR.submit(fn)
-        self.write(start)
-        self.flush()
+        self.writem(start)
+        self.flushm()
         while True:
             if not fut.done():
                 time.sleep(1)
-                self.write("...")
-                self.flush()
+                self.writem("...")
+                self.flushm()
             else:
                 break
-        self.write(finish)
-        self.flush()
+        self.writem(finish)
+        self.flushm()
         return fut.result()
 
         # dblpAuthorsList = [i.split(",") for i in self.get_argument('inputdblp').split("\n")]

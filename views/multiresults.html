@@ -19,28 +19,29 @@
 <legend>MLJ Matcher 2.0</legend>
     <div class="tree well">
         <ul>
-            {% for filename, result in results %}
-            <li><span><i class="glyphicon glyphicon-folder-open"></i> {{ escape("Results for %s" % filename) }}</span></li>
-            <ul>
-                {% for (author, score), publications in result %}
-                {% set (name, url) = author.split("||") %}
-                <li> <span><i class="glyphicon glyphicon-folder-open"></i> {{escape("%s, %f" % (name, score))}}</span>  <a href="{{'//dblp.uni-trier.de/pers/hd/' + url}}" target="_blank">Visit DBLP page</a>
-                    <ul>
-                        {% for title, pscore, concepts in publications %}
-                        <li>	<span><i class="glyphicon glyphicon-minus-sign"></i> {{escape("%s, %f" % (title, pscore))}}</span>
-                            <ul>
-                                {%  for concept, conceptScore in sorted([(c, s) for c, s in concepts.items() if s > 0.0], key=lambda x: x[1], reverse=True) %}
-                                <li> <span><i class="glyphicon glyphicon-leaf"></i> {{escape("%s, %f" % (concept, conceptScore))}} </span>
+            {% for filename, result, concatscores in results %}
+            <li><span><i class="glyphicon glyphicon-folder-open"></i> {{ escape("Results for %s" % filename) }}</span>
+                <ul>
+                    {% for (author, score), publications in result %}
+                    {% set (name, url) = author.split("||") %}
+                    <li> <span class="author" score="{{score}}" concatscore="{{concatscores[url]}}"><i class="glyphicon glyphicon-folder-open"></i> {{escape("%s, %f" % (name, score))}}</span>  <a href="{{'//dblp.uni-trier.de/pers/hd/' + url}}" target="_blank">Visit DBLP page</a>
+                        <ul>
+                            {% for title, pscore, concepts in publications %}
+                            <li>	<span><i class="glyphicon glyphicon-minus-sign"></i> {{escape("%s, %f" % (title, pscore))}}</span>
+                                <ul>
+                                    {%  for concept, conceptScore in sorted([(c, s) for c, s in concepts.items() if s > 0.0], key=lambda x: x[1], reverse=True) %}
+                                    <li> <span><i class="glyphicon glyphicon-leaf"></i> {{escape("%s, %f" % (concept, conceptScore))}} </span>
 
-                                </li>
-                                {% end %}
-                            </ul>
-                        </li>
-                        {% end %}
-                    </ul>
-                </li>
-                {% end %}
-            </ul>
+                                    </li>
+                                    {% end %}
+                                </ul>
+                            </li>
+                            {% end %}
+                        </ul>
+                    </li>
+                    {% end %}
+                </ul>
+            </li>
             {% end %}
         </ul>
     </div>

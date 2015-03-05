@@ -136,12 +136,15 @@ class SemanticProfile():
 
         self.svd = TruncatedSVD(n_components=numSingularVectors, random_state=0)
         # self.features = self.svd.fit_transform(self.trim(E, K=self.topKConcepts))
-        self.features = normalize(self.trim(E, K=self.topKConcepts))
+        self.features = normalize(self.trim(E, K=-1))
+        # self.features = normalize(self.trim(E, K=self.topKConcepts))
         self.T = T
         self.E = E
 
 
     def trim(self, E, K):
+        if K == -1:
+            return E
         E = E.tolil()
         for i in range(E.shape[0]):
             row = E[i].toarray()[0]
@@ -153,5 +156,5 @@ class SemanticProfile():
         D = self.documentsTfidf.transform(clean(docs, self.minWordLength))
         E = D.dot(self.T.T)
         # return self.svd.transform(self.trim(E, K=self.topKConcepts))
-        return normalize(self.trim(E, K=self.topKConcepts))
-
+        # return normalize(self.trim(E, K=self.topKConcepts))
+        return normalize(self.trim(E, K=-1))

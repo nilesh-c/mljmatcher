@@ -35,6 +35,39 @@
   </div>
 </div>
 
+<!-- Multiple Radios -->
+<div class="control-group">
+  <label class="control-label" for="inputsort">Sort Authors By</label>
+  <div class="controls">
+    <label class="radio" for="inputsort-0">
+      <input type="radio" name="inputsort" id="inputsort-0" value="All publications concatenated" checked="checked">
+      All publications concatenated
+    </label>
+    <label class="radio" for="inputsort-1">
+      <input type="radio" name="inputsort" id="inputsort-1" value="Total contributions of individual publications">
+      Total contributions of individual publications
+    </label>
+  </div>
+</div>
+
+<!-- Text input-->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="cutoff">Special Members Cutoff</label>
+  <div class="col-md-4">
+  <input id="cutoff" name="cutoff" type="text" placeholder="-1 for no cutoff" class="form-control input-md">
+
+  </div>
+</div>
+
+<!-- Text input-->
+<div class="form-group">
+  <label class="col-md-4 control-label" for="otherscutoff">Others Cutoff</label>
+  <div class="col-md-4">
+  <input id="otherscutoff" name="otherscutoff" type="text" placeholder="-1 for no cutoff" class="form-control input-md">
+
+  </div>
+</div>
+
 <div id="textentry">
   <!-- Textarea -->
   <div class="control-group">
@@ -96,12 +129,14 @@
 <div class="control-group">
   <label class="control-label" for="singlebutton"></label>
   <div class="controls">
-    <button id="singlebutton" name="singlebutton" class="btn btn-primary" type="submit" value="upload">Match!</button>
+    <button id="match" name="matchbutton" class="btn btn-primary" type="submit" value="match">Match!</button>
+    <button id="download" name="matchbutton" class="btn btn-primary" type="submit" value="download">Download Matches!</button>
   </div>
 </div>
 
 </fieldset>
 </form>
+
 	<!-- script references -->
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
 		<script src="{{ static_url('js/bootstrap.min.js') }}"></script>
