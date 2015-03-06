@@ -152,7 +152,8 @@ def main():
                 for (author, score), _ in output:
                     name, url = author.split("||")
                     finalscore = concatscores[url][0] if sortconcat == True else score
-                    csv.write("%s,%f\n" % (author.encode('utf-8'), finalscore))
+                    if ("(" in name and ")" in name and finalscore >= specialcutoff) or (("(" not in name or ")" not in name) and finalscore >= otherscutoff):
+                        csv.write("%s,%f\n" % (author.encode('utf-8'), finalscore))
 
             with open(os.path.join(args.output, os.path.split(f)[-1] + ".html"), "w") as html:
                 html.write(template.generate(results=output,

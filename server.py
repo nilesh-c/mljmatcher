@@ -242,7 +242,8 @@ class Match(tornado.web.RequestHandler):
                             for (author, score), _ in output:
                                 name, url = author.split("||")
                                 finalscore = concatscores[url][0] if self.sortconcat == True else score
-                                temp.write("%s,%f\n" % (author.encode('utf-8'), finalscore))
+                                if ("(" in name and ")" in name and finalscore >= specialcutoff) or (("(" not in name or ")" not in name) and finalscore >= otherscutoff):
+                                    temp.write("%s,%f\n" % (author.encode('utf-8'), finalscore))
 
                         # self.redirect("/matches.csv/%s" % f, status=303)
                         with open("/tmp/" + f, 'r') as fp:
