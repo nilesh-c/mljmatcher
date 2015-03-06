@@ -4,4 +4,4 @@ class Persist():
     query = None
     authPubs = None
     dblpAuthorsList = None
-    matcher = None
+    matcher = {'emltex_selected': None, 'emltex': None, 'emltexwiki_selected': None, 'emltexwiki': None}

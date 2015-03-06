@@ -46,7 +46,7 @@ class CosineQuery():
         labels, scores, vectors = self._query(x, numResults)
         return zip(labels, scores, vectors)
 
-    def queryContributions(self, x, numResults=None, topConcepts=5):
+    def queryContributions(self, x, numResults=None, topConcepts=-1):
         """Query vector x against semanticProfile and return matches along with corresponding contributions from the
         topConcept matching concepts. Use this to know which semantic concepts the query and result have most in common.
 
@@ -72,7 +72,10 @@ class CosineQuery():
                 v = v.toarray()[0]
 
             products = x*v
-            topContributions = np.argsort(products)[-topConcepts:].tolist()
+            if topConcepts == -1:
+                topContributions = np.argsort(products).tolist()
+            else:
+                topContributions = np.argsort(products)[-topConcepts:].tolist()
             for i in topContributions:
                 if products[i] == 0.0:
                     topContributions.remove(i)

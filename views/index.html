@@ -22,7 +22,7 @@
 
 <!-- Multiple Radios -->
 <div class="control-group">
-  <label class="control-label" for="inputtype">Input Type</label>
+  <label class="control-label" for="inputtype">Input type:</label>
   <div class="controls">
     <label class="radio" for="inputtype-0">
       <input type="radio" name="inputtype" id="inputtype-0" value="File Uploads" checked="checked">
@@ -37,7 +37,7 @@
 
 <!-- Multiple Radios -->
 <div class="control-group">
-  <label class="control-label" for="inputsort">Sort Authors By</label>
+  <label class="control-label" for="inputsort">Sort authors by:</label>
   <div class="controls">
     <label class="radio" for="inputsort-0">
       <input type="radio" name="inputsort" id="inputsort-0" value="All publications concatenated" checked="checked">
@@ -50,9 +50,32 @@
   </div>
 </div>
 
+<!-- Multiple Radios -->
+<div class="control-group">
+  <label class="control-label" for="inputindex">Build semantic index using:</label>
+  <div class="controls">
+    <label class="radio" for="inputindex-0">
+      <input type="radio" name="inputindex" id="inputindex-0" value="emltex_selected" checked="checked">
+      53 EML articles: Latex sources
+    </label>
+    <label class="radio" for="inputindex-1">
+      <input type="radio" name="inputindex" id="inputindex-1" value="emltex">
+      247 EML articles: Latex sources
+    </label>
+    <label class="radio" for="inputindex-2">
+      <input type="radio" name="inputindex" id="inputindex-2" value="emltexwiki_selected">
+      53 EML articles: Latex sources + Wikipedia content
+    </label>
+    <label class="radio" for="inputindex-3">
+      <input type="radio" name="inputindex" id="inputindex-3" value="emltexwiki">
+      247 EML articles: Latex sources + Wikipedia content
+    </label>
+  </div>
+</div>
+
 <!-- Text input-->
 <div class="form-group" style="margin-top:25px; margin-left:-50px">
-  <label class="col-md-2 control-label" for="cutoff">Special Members Cutoff</label>
+  <label class="col-md-2 control-label" for="cutoff">Special members cutoff</label>
   <div class="col-md-2">
   <input id="cutoff" name="cutoff" type="text" placeholder="-1 for no cutoff (default)" class="form-control input-md">
 
@@ -61,7 +84,7 @@
 
 <!-- Text input-->
 <div class="form-group" style="margin-left:-50px">
-  <label class="col-md-2 control-label" for="otherscutoff">Others Cutoff</label>
+  <label class="col-md-2 control-label" for="otherscutoff">Others cutoff</label>
   <div class="col-md-2">
   <input id="otherscutoff" name="otherscutoff" type="text" placeholder="-1 for no cutoff (default)" class="form-control input-md">
 
@@ -113,9 +136,9 @@
 <div id="uploaders">
   <!-- File Button --> 
   <div class="control-group">
-    <label class="control-label" for="uploadpdf">Upload Query PDF</label>
+    <label class="control-label" for="uploadpdf">Upload query PDF</label>
     <div class="controls">
-      <input id="uploadpdf" name="uploadpdf" class="input-file" type="file" multiple>
+      <input id="uploadpdf" name="uploadpdf" class="input-file" type="file">
     </div>
   </div>
 
@@ -147,8 +170,9 @@
 <div class="control-group">
   <label class="control-label" for="singlebutton"></label>
   <div class="controls">
-    <button id="match" name="matchbutton" class="btn btn-primary" type="submit" value="match">Match!</button>
-    <button id="download" name="matchbutton" class="btn btn-primary" type="submit" value="download">Download Matches!</button>
+    <!--<button id="match" name="matchbutton" class="btn btn-primary" type="submit" value="resetmatch">Reset profile cache and match</button>-->
+    <button id="match" name="matchbutton" class="btn btn-primary" type="submit" value="match">Match</button>
+    <button id="download" name="matchbutton" class="btn btn-primary" type="submit" value="download">Download Matches</button>
   </div>
 </div>
 

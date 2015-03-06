@@ -108,6 +108,7 @@ class Match(tornado.web.RequestHandler):
         self.dblpAuthorsList = Persist.dblpAuthorsList
         self.matcher = Persist.matcher
         self.topk = self.get_argument('topk').strip()
+        self.encDirectory = self.get_argument('inputindex').strip()
         self.topk = int(self.topk) if self.topk else -1
         self.numtopics = self.get_argument('numtopics').strip()
         self.numtopics = int(self.numtopics) if self.numtopics else 3
@@ -185,7 +186,7 @@ class Match(tornado.web.RequestHandler):
                 sleepUntilAvailable(('authPubs', 'dblpAuthorsList'))
 
                 if not matcher.builtAuthorProfiles: self.runThread2("Building author profiles...<br>", "<br>Finished building author profiles.<br>", matcher.buildAuthorProfiles, self.authPubs)
-                if not matcher.builtConcatAuthorProfiles: self.runThread2("Building author profiles...<br>", "<br>Finished building author profiles.<br>", matcher.buildConcatenatedAuthorProfiles, self.authPubs)
+                if not matcher.builtConcatAuthorProfiles: self.runThread2("Building concatenated author profiles...<br>", "<br>Finished building concatenated author profiles.<br>", matcher.buildConcatenatedAuthorProfiles, self.authPubs)
                 # matcher.buildAuthorProfiles(self.authPubs)
                 # self.write("Building author profiles...<br>")
                 # self.flush()
@@ -211,13 +212,14 @@ class Match(tornado.web.RequestHandler):
                     print "Matching!!"
                     output = matcher.query(self.query, topK=self.topk)
                     concatscores = matcher.queryConcat(self.query, topK=self.topk)
+                    queryConcepts = matcher.getTopConcepts(self.query, topK=self.topk)
                     # print concatscores
                     self.writem("</div>")
                     self.flushm()
 
                     if self.get_argument('inputsort') == "All publications concatenated":
                         self.sortconcat = True
-                        output.sort(key=lambda x: concatscores[x[0][0].split("||")[1]], reverse=True)
+                        output.sort(key=lambda x: concatscores[x[0][0].split("||")[1]][0], reverse=True)
                     else:
                         self.sortconcat = False
 
@@ -232,13 +234,14 @@ class Match(tornado.web.RequestHandler):
                                     specialcutoff=specialcutoff,
                                     otherscutoff=otherscutoff,
                                     sortconcat=self.sortconcat,
-                                    numtopics=self.numtopics)
+                                    numtopics=self.numtopics,
+                                    queryconcepts=queryConcepts)
                     else:
                         f = str(uuid.uuid4().get_hex().upper()[:10])
                         with open("/tmp/" + f, 'w') as temp:
                             for (author, score), _ in output:
                                 name, url = author.split("||")
-                                finalscore = concatscores[url] if self.sortconcat == True else score
+                                finalscore = concatscores[url][0] if self.sortconcat == True else score
                                 temp.write("%s,%f\n" % (author.encode('utf-8'), finalscore))
 
                         # self.redirect("/matches.csv/%s" % f, status=303)
@@ -253,12 +256,15 @@ class Match(tornado.web.RequestHandler):
                  "<br>Finished fetching publications.<br>", getAuthPubs, dblplist), callback=setAuthPubs)
             # setAuthPubs(getAuthPubs(dblplist))
 
-            if self.matcher == None:
-                self.matcher = Matcher(CACHEDIR)
+
+            encDirectory = self.encDirectory
+            if self.matcher[encDirectory] == None:
+                self.matcher[encDirectory] = Matcher(CACHEDIR, encDirectory)
+                matcher = self.matcher[encDirectory]
                 self.runThread2("Building semantic interpreter...<br>", "<br>Finished building semantic interpreter.<br>",
-                self.matcher.buildSemanticInterpreter, callback=lambda x: self.runThread(waitAndFinish, (self.matcher,)))
+                matcher.buildSemanticInterpreter, callback=lambda x: self.runThread(waitAndFinish, (matcher,)))
             else:
-                self.runThread(waitAndFinish, (self.matcher,))
+                self.runThread(waitAndFinish, (self.matcher[encDirectory],))
 
         finally:
             # Persist.query = self.query

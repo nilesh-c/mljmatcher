@@ -11,7 +11,8 @@ from glob import glob
 import nltk, re, codecs, os
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem.porter import PorterStemmer
-import texttable as tt
+import numpy as np
+from scipy.sparse import issparse
 # tornado, nltk, dblp, pdfminer, sqlite3, scikit-learn
 __author__ = 'nilesh'
 
@@ -206,31 +207,33 @@ class Matcher():
     #         self.buildAuthorProfiles()
     #
     # def __init__(self):
-    def __init__(self, cachedir):
+    def __init__(self, cachedir, encDirectory):
         self.cachedir = cachedir
+        self.encDirectory = encDirectory
         self.builtAuthorProfiles = False
         self.builtConcatAuthorProfiles = False
+        self.encDictionary = None
 
     def buildSemanticInterpreter(self):
         import cPickle as pickle
         print "Building semantic interpreter..."
-        knowledgeBaseFilesGlob = os.path.join(os.path.dirname(os.path.realpath(__file__)), "enc3/part*")
-        knowledgeBaseIndexFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "enc3/emldmindex.main")
+        knowledgeBaseFilesGlob = os.path.join(os.path.dirname(os.path.realpath(__file__)), "kbases", self.encDirectory, "part*")
+        knowledgeBaseIndexFile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "kbases", self.encDirectory, "emldmindex.main")
         topics, enc = getEnc(knowledgeBaseFilesGlob, knowledgeBaseIndexFile)
         # self.encDictionary = Dictionary(enc, [i[:-9] for i in topics])
         try:
-            if os.path.isfile(os.path.join(self.cachedir, "authorProfiles")):
+            if os.path.isfile(os.path.join(self.cachedir, self.encDirectory + ".authorProfiles")):
                 self.encDictionary = 'notneeded'
                 # return
-            self.encDictionary = pickle.load(open(os.path.join(self.cachedir, "encDictionary"), "rb"))
+            self.encDictionary = pickle.load(open(os.path.join(self.cachedir, self.encDirectory + ".encDictionary"), "rb"))
         except:
             self.encDictionary = Dictionary(enc, [i for i in topics])
-            pickle.dump(self.encDictionary, open(os.path.join(self.cachedir, "encDictionary"), "wb"))
+            pickle.dump(self.encDictionary, open(os.path.join(self.cachedir, self.encDirectory + ".encDictionary"), "wb"))
 
     def buildConcatenatedAuthorProfiles(self, authPubs):
         import cPickle as pickle
         try:
-            self.authorsc, self.docsc, self.labelsc, self.pc, self.qc = pickle.load(open(os.path.join(self.cachedir, "authorProfilesConcat"), "rb"))
+            self.authorsc, self.docsc, self.labelsc, self.pc, self.qc = pickle.load(open(os.path.join(self.cachedir, self.encDirectory + ".authorProfilesConcat"), "rb"))
             print "Loaded cached concatenated profiles"
         except:
             print "Generating author profiles, no cache exists"
@@ -248,21 +251,17 @@ class Matcher():
                 count += 1
 
             print "Building concatenated author profiles..."
-            print self.docsc[0]
-            print self.labelsc[0]
-            print self.docsc[1]
-            print self.labelsc[1]
             docsDictionary = Dictionary(self.docsc, self.labelsc)
             self.pc = SemanticProfile(docsDictionary, self.encDictionary)
             self.qc = CosineQuery(self.pc)
 
-            pickle.dump((self.authorsc, self.docsc, self.labelsc, self.pc, self.qc), open(os.path.join(self.cachedir, "authorProfilesConcat"), "wb"))
+            pickle.dump((self.authorsc, self.docsc, self.labelsc, self.pc, self.qc), open(os.path.join(self.cachedir, self.encDirectory + ".authorProfilesConcat"), "wb"))
         self.builtConcatAuthorProfiles = True
 
     def buildAuthorProfiles(self, authPubs):
         import cPickle as pickle
         try:
-            self.authors, self.docs, self.labels, self.p, self.q = pickle.load(open(os.path.join(self.cachedir, "authorProfiles"), "rb"))
+            self.authors, self.docs, self.labels, self.p, self.q = pickle.load(open(os.path.join(self.cachedir, self.encDirectory + ".authorProfiles"), "rb"))
             print "Loaded cached profiles"
         except:
             print "Generating author profiles, no cache exists"
@@ -283,22 +282,40 @@ class Matcher():
             self.p = SemanticProfile(docsDictionary, self.encDictionary)
             self.q = CosineQuery(self.p)
 
-            pickle.dump((self.authors, self.docs, self.labels, self.p, self.q), open(os.path.join(self.cachedir, "authorProfiles"), "wb"))
+            pickle.dump((self.authors, self.docs, self.labels, self.p, self.q), open(os.path.join(self.cachedir, self.encDirectory + ".authorProfiles"), "wb"))
         self.builtAuthorProfiles = True
 
     def queryConcat(self, queryText, topK=-1):
-        results = self.qc.query(self.pc.transformRawDocuments([queryText], K=topK))
+        results = self.qc.queryContributions(self.pc.transformRawDocument(queryText, K=topK))
         results = sorted(results, key=lambda x: x[1])
-        results = {self.authorsc[label].split("||")[1]: score for label, score, _ in results}
+        results = {self.authorsc[label].split("||")[1]: (score, concepts) for label, score, _, concepts in results}
         # print results
         return results
+
+    def getTopConcepts(self, queryText, topK=-1, topConcepts=-1):
+        transformed = self.p.transformRawDocument(queryText, K=topK)
+
+        if issparse(transformed):
+            transformed = transformed.toarray()[0]
+
+        if topConcepts == -1:
+            concepts = np.argsort(transformed).tolist()
+        else:
+            concepts = np.argsort(transformed)[-topConcepts:].tolist()
+
+        for i in concepts:
+            if transformed[i] == 0.0:
+                concepts.remove(i)
+
+        return {self.p.conceptLabels[i]: transformed[i] for i in concepts}
+
 
     def query(self, queryText, topK=-1):
         numAuthors = -1
         numAuthors = -1
         numTitles = -1
 
-        results = self.q.queryContributions(self.p.transformRawDocuments([queryText], K=topK), topConcepts=5)
+        results = self.q.queryContributions(self.p.transformRawDocument(queryText, K=topK), topConcepts=-1)
         results = sorted(results, key=lambda x: x[0])
         # print results
         return getTopAuthors(self.authors, self.docs, [i[3] for i in results], [i[1] for i in results], numAuthors, numTitles)

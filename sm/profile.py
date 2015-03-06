@@ -121,6 +121,7 @@ class SemanticProfile():
         self.documentLabels = documentsDictionary.documentLabels
         self.conceptLabels = semanticInterpreterDictionary.documentLabels
         self.topKConcepts = topKConcepts
+        self.transformCache = {}
 
         self.jointVocabulary = list(set([i for i in documentsDictionary.count.vocabulary_])
                                     .union(set([k for k in semanticInterpreterDictionary.count.vocabulary_])))
@@ -158,3 +159,10 @@ class SemanticProfile():
         # return self.svd.transform(self.trim(E, K=self.topKConcepts))
         # return normalize(self.trim(E, K=self.topKConcepts))
         return normalize(self.trim(E, K=K))
+
+    def transformRawDocument(self, doc, K=-1):
+        if doc not in self.transformCache:
+            transformed = self.transformRawDocuments([doc], K)
+            self.transformCache[doc] = transformed
+
+        return self.transformCache[doc]
